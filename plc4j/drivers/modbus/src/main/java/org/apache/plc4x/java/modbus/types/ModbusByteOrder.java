@@ -16,11 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.plc4x.java.spi.codegen;
+package org.apache.plc4x.java.modbus.types;
 
-public class ThreadLocalHelper {
-
-    public static final ThreadLocal<Boolean> lastItemThreadLocal = ThreadLocal.withInitial(() -> false);
-    public static final ThreadLocal<Integer> curItemThreadLocal = ThreadLocal.withInitial(() -> 0);
-
+public enum ModbusByteOrder {
+    // [1, 2, 3, 4]
+    // [1, 2, 3, 4, 5, 6, 7, 8]
+    BIG_ENDIAN,
+    // [4, 3, 2, 1]
+    // [8, 7, 6, 5, 4, 3, 2, 1]
+    LITTLE_ENDIAN,
+    // [2, 1, 4, 3]
+    // [2, 1, 4, 3, 6, 5, 8, 7]
+    BIG_ENDIAN_BYTE_SWAP,
+    // [3, 4, 1, 2]
+    // [7, 8, 5, 6, 3, 4, 1, 2]
+    LITTLE_ENDIAN_BYTE_SWAP
 }
