@@ -558,6 +558,21 @@ class ${type.name}<#if type.isDiscriminatedParentTypeDefinition()></#if>(<#if ty
         start_pos: int = read_buffer.get_pos()
         cur_pos: int = 0
         </#if>
+
+        <#if hasParserArguments>
+            <#list parserArguments as parserArgument>
+        if isinstance(${helper.camelCaseToSnakeCase(parserArgument.name)}, str):
+            <#if parserArgument.type.isEnumTypeReference()>
+            ${helper.camelCaseToSnakeCase(parserArgument.name)} = ${helper.getLanguageTypeNameForTypeReference(parserArgument.type, false)}[${helper.camelCaseToSnakeCase(parserArgument.name)}]
+            <#elseif helper.getLanguageTypeNameForTypeReference(parserArgument.type, false) = "bool">
+            <@emitImport import="from distutils.util import strtobool" />
+            ${helper.camelCaseToSnakeCase(parserArgument.name)} = bool(strtobool(${helper.camelCaseToSnakeCase(parserArgument.name)}))
+            <#else>
+            ${helper.camelCaseToSnakeCase(parserArgument.name)} = ${helper.getLanguageTypeNameForTypeReference(parserArgument.type, false)}(${helper.camelCaseToSnakeCase(parserArgument.name)})
+            </#if>
+            </#list>
+        </#if>
+
     <#assign reservedFieldIndex=0>
     <#list type.fields as field>
         <#switch field.typeName>
@@ -854,14 +869,9 @@ class ${type.name}<#if type.isDiscriminatedParentTypeDefinition()></#if>(<#if ty
     <@emitImport import="from plc4py.api.exceptions.exceptions import SerializationException" />
     <@emitImport import="from plc4py.api.exceptions.exceptions import PlcRuntimeException" />
     def __str__(self) -> str:
-        pass
-        #write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        #try:
-        #    write_buffer_box_based.writeSerializable(self)
-        #except SerializationException as e:
-        #    raise PlcRuntimeException(e)
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
-        #return "\n" + str(write_buffer_box_based.get_box()) + "\n"
 
     <#if type.isDiscriminatedParentTypeDefinition()>
 @dataclass

@@ -18,7 +18,7 @@
 #
 import re
 from dataclasses import InitVar, dataclass, field
-from typing import Optional, Dict
+from typing import Dict, Optional
 
 
 @dataclass
@@ -39,7 +39,7 @@ class PlcConfiguration:
             + r"(:(?P<transport>[\w]*))?"
             + r":\/\/(?P<host>[\w+.]*)"
             + r"(:(?P<port>\d+))?"
-            + r"(?P<parameters>(&{1}([^&=]*={1}[^&=]*))*)"
+            + r"/?(?P<parameters>(([^&=]*={1}[^&=]*){1}&*)*)"
         )
         matches = re.search(regex, url)
 

@@ -130,6 +130,11 @@ class UmasPDUItem(ABC, PlcMessage):
     ):
         read_buffer.push_context("UmasPDUItem")
 
+        if isinstance(umas_request_function_key, str):
+            umas_request_function_key = int(umas_request_function_key)
+        if isinstance(byte_length, str):
+            byte_length = int(byte_length)
+
         pairing_key: int = read_buffer.read_unsigned_byte(
             logical_name="pairing_key",
             bit_length=8,
@@ -220,6 +225,15 @@ class UmasPDUItem(ABC, PlcMessage):
             builder = UmasPDUReadUnlocatedVariableNamesRequest.static_parse_builder(
                 read_buffer, umas_request_function_key, byte_length
             )
+        from plc4py.protocols.umas.readwrite.UmasPDUErrorResponse import (
+            UmasPDUErrorResponse,
+        )
+
+        if umas_function_key == int(0xFD):
+
+            builder = UmasPDUErrorResponse.static_parse_builder(
+                read_buffer, umas_request_function_key, byte_length
+            )
         from plc4py.protocols.umas.readwrite.UmasInitCommsResponse import (
             UmasInitCommsResponse,
         )
@@ -274,7 +288,6 @@ class UmasPDUItem(ABC, PlcMessage):
             builder = UmasPDUWriteVariableResponse.static_parse_builder(
                 read_buffer, umas_request_function_key, byte_length
             )
-
         from plc4py.protocols.umas.readwrite.UmasPDUReadUnlocatedVariableResponse import (
             UmasPDUReadUnlocatedVariableResponse,
         )
@@ -315,14 +328,8 @@ class UmasPDUItem(ABC, PlcMessage):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

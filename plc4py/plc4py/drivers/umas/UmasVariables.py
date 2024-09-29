@@ -18,20 +18,19 @@
 #
 import re
 from dataclasses import dataclass
-from typing import Dict, List, Pattern, AnyStr, Union
-
-from plc4py.protocols.umas.readwrite.UmasDataType import UmasDataType
-
-from plc4py.protocols.umas.readwrite.VariableReadRequestReference import (
-    VariableReadRequestReference,
-)
+from typing import AnyStr, Dict, List, Pattern, Union
 
 from plc4py.api.exceptions.exceptions import PlcDataTypeNotFoundException
-from plc4py.protocols.umas.readwrite.UmasDatatypeReference import UmasDatatypeReference
+from plc4py.protocols.umas.readwrite.UmasDataType import UmasDataType
+from plc4py.protocols.umas.readwrite.UmasDatatypeReference import (
+    UmasDatatypeReference,
+)
 from plc4py.protocols.umas.readwrite.UmasUDTDefinition import UmasUDTDefinition
-
 from plc4py.protocols.umas.readwrite.UmasUnlocatedVariableReference import (
     UmasUnlocatedVariableReference,
+)
+from plc4py.protocols.umas.readwrite.VariableReadRequestReference import (
+    VariableReadRequestReference,
 )
 
 
@@ -148,7 +147,7 @@ class UmasVariableBuilder:
     def build(self) -> UmasVariable:
         variable: UmasVariable = None
         _ARRAY_REGEX: str = (
-            "^ARRAY\[(?P<start_number>[0-9]*)..(?P<end_number>[0-9]*)\] OF (?P<data_type>[a-zA-z0-9]*)"
+            r"^ARRAY\[(?P<start_number>[0-9]*)..(?P<end_number>[0-9]*)\] OF (?P<data_type>[a-zA-z0-9]*)"
         )
         _ARRAY_COMPILED: Pattern[AnyStr] = re.compile(_ARRAY_REGEX)
 
@@ -187,7 +186,7 @@ class UmasVariableBuilder:
                         variable = UmasCustomVariable(
                             self.tag_name,
                             data_type,
-                            self.tag_reference.block,
+                            self.block,
                             self.tag_reference.offset,
                             children,
                         )

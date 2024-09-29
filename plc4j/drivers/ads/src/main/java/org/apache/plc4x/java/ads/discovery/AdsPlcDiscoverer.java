@@ -126,7 +126,7 @@ public class AdsPlcDiscoverer implements PlcDiscoverer {
                                                     attributes.put("twin-cat-version", new PlcSTRING(String.format("%d.%d.%d", (short) versionData[0] & 0xFF, (short) versionData[1] & 0xFF, patchVersion)));
                                                 }
                                                 if (fingerprintBlock != null) {
-                                                    attributes.put("fingerprint", new PlcSTRING(new String(fingerprintBlock.getData())));
+                                                    attributes.put("fingerprint", new PlcSTRING(new String(fingerprintBlock.getData()).trim()));
                                                 }
                                                 // TODO: Find out how to handle the OS Data
 
@@ -183,7 +183,7 @@ public class AdsPlcDiscoverer implements PlcDiscoverer {
                             }
 
                             try {
-                                Thread.sleep(3000);
+                                Thread.sleep(100);
                             } catch (InterruptedException e) {
                                 throw new RuntimeException(e);
                             }
@@ -205,6 +205,8 @@ public class AdsPlcDiscoverer implements PlcDiscoverer {
             public void run() {
                 PlcDiscoveryResponse response =
                     new DefaultPlcDiscoveryResponse(discoveryRequest, PlcResponseCode.OK, new ArrayList<>(values));
+                timer.cancel();
+                timer.purge();
                 future.complete(response);
             }
         }, 5000L);

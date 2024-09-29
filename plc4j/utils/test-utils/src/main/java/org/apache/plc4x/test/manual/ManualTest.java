@@ -27,6 +27,7 @@ import org.apache.plc4x.java.api.messages.PlcWriteResponse;
 import org.apache.plc4x.java.api.types.PlcResponseCode;
 import org.apache.plc4x.java.api.value.PlcValue;
 import org.apache.plc4x.java.spi.values.PlcList;
+import org.apache.plc4x.java.spi.values.PlcRawByteArray;
 import org.apache.plc4x.java.spi.values.PlcStruct;
 import org.apache.plc4x.java.spi.values.PlcValues;
 import org.junit.jupiter.api.Assertions;
@@ -42,18 +43,19 @@ public abstract class ManualTest {
     private final boolean testWrite;
     private final boolean enableSingleIteTests;
     private final List<TestCase> testCases;
-
+    private final boolean shuffleMultiItemRequests;
     private final int numRandomMultiItemRequests;
 
     public ManualTest(String connectionString) {
-        this(connectionString, true, true, true, 100);
+        this(connectionString, true, true, true, true, 100);
     }
 
-    public ManualTest(String connectionString, boolean testRead, boolean testWrite, boolean enableSingleIteTests, int numRandomMultiItemRequests) {
+    public ManualTest(String connectionString, boolean testRead, boolean testWrite, boolean enableSingleIteTests, boolean shuffleMultiItemRequests, int numRandomMultiItemRequests) {
         this.connectionString = connectionString;
         this.testRead = testRead;
         this.testWrite = testWrite;
         this.enableSingleIteTests = enableSingleIteTests;
+        this.shuffleMultiItemRequests = shuffleMultiItemRequests;
         this.numRandomMultiItemRequests = numRandomMultiItemRequests;
         testCases = new ArrayList<>();
     }
@@ -79,7 +81,9 @@ public abstract class ManualTest {
                         final PlcReadRequest readRequest = plcConnection.readRequestBuilder().addTagAddress(tagName, testCase.address).build();
 
                         // Execute the read request
+                        long startTime = System.currentTimeMillis();
                         final PlcReadResponse readResponse = readRequest.execute().get();
+                        long endTime = System.currentTimeMillis();
 
                         // Check the result
                         Assertions.assertEquals(1, readResponse.getTagNames().size(), tagName);
@@ -108,6 +112,10 @@ public abstract class ManualTest {
                         } else {
                             if (testCase.expectedReadValue instanceof PlcStruct) {
                                 Assertions.assertEquals(testCase.expectedReadValue.toString(), readResponse.getPlcValue(tagName).toString(), tagName);
+                            } else if (testCase.expectedReadValue instanceof PlcRawByteArray) {
+                                byte[] expectedRawByteArray = ((PlcRawByteArray) testCase.expectedReadValue).getRaw();
+                                byte[] readRawByteArray = ((PlcRawByteArray) readResponse.getPlcValue(tagName)).getRaw();
+                                Assertions.assertArrayEquals(expectedRawByteArray, readRawByteArray);
                             } else if (testCase.expectedReadValue instanceof PlcValue) {
                                 Assertions.assertEquals(
                                     ((PlcValue) testCase.expectedReadValue).getObject(), readResponse.getPlcValue(tagName).getObject(), tagName);
@@ -132,7 +140,9 @@ public abstract class ManualTest {
                         PlcWriteRequest writeRequest = plcConnection.writeRequestBuilder().addTagAddress(tagName, testCase.address, plcValue).build();
 
                         // Execute the write request
+                        long startTime = System.currentTimeMillis();
                         PlcWriteResponse writeResponse = writeRequest.execute().get();
+                        long endTime = System.currentTimeMillis();
 
                         // Check the result
                         Assertions.assertEquals(PlcResponseCode.OK, writeResponse.getResponseCode(tagName), String.format("Got status %s for %s", writeResponse.getResponseCode(tagName).name(), testCase.address));
@@ -148,7 +158,9 @@ public abstract class ManualTest {
                 for (int i = 0; i < numRandomMultiItemRequests; i++) {
                     System.out.println(" - run number " + i + " of " + numRandomMultiItemRequests);
                     final List<TestCase> shuffledTestcases = new ArrayList<>(testCases);
-                    Collections.shuffle(shuffledTestcases);
+                    if(shuffleMultiItemRequests) {
+                        Collections.shuffle(shuffledTestcases);
+                    }
 
                     StringBuilder sb = new StringBuilder();
                     for (TestCase testCase : shuffledTestcases) {
@@ -165,7 +177,9 @@ public abstract class ManualTest {
                         final PlcReadRequest readRequest = builder.build();
 
                         // Execute the read request
+                        long startTime = System.currentTimeMillis();
                         final PlcReadResponse readResponse = readRequest.execute().get();
+                        long endTime = System.currentTimeMillis();
 
                         // Check the result
                         Assertions.assertEquals(shuffledTestcases.size(), readResponse.getTagNames().size());
@@ -187,7 +201,7 @@ public abstract class ManualTest {
                                     "Tag: " + tagName);
                             }
                         }
-                        System.out.println("        - Read OK");
+                        System.out.println("        - Read OK (" + (endTime - startTime) + " ms)");
                     }
 
                     if (testWrite) {

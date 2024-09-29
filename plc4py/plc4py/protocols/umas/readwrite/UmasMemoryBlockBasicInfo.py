@@ -87,6 +87,11 @@ class UmasMemoryBlockBasicInfo(UmasMemoryBlock):
     def static_parse_builder(read_buffer: ReadBuffer, block_number: int, offset: int):
         read_buffer.push_context("UmasMemoryBlockBasicInfo")
 
+        if isinstance(block_number, str):
+            block_number = int(block_number)
+        if isinstance(offset, str):
+            offset = int(offset)
+
         range: int = read_buffer.read_unsigned_short(
             logical_name="range",
             bit_length=16,
@@ -137,14 +142,8 @@ class UmasMemoryBlockBasicInfo(UmasMemoryBlock):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

@@ -20,26 +20,30 @@ import asyncio
 from typing import Type
 
 import plc4py
-from plc4py.api.PlcConnection import PlcConnection, PlcConnectionMetaData
-from plc4py.api.PlcDriver import PlcDriver
 from plc4py.api.authentication.PlcAuthentication import PlcAuthentication
 from plc4py.api.messages.PlcRequest import (
-    ReadRequestBuilder,
-    PlcRequest,
     PlcReadRequest,
+    PlcRequest,
     PlcWriteRequest,
+    ReadRequestBuilder,
+    WriteRequestBuilder,
 )
 from plc4py.api.messages.PlcResponse import (
     PlcResponse,
 )
+from plc4py.api.PlcConnection import PlcConnection, PlcConnectionMetaData
+from plc4py.api.PlcDriver import PlcDriver
 from plc4py.api.value.PlcValue import PlcResponseCode
-from plc4py.drivers.PlcDriverLoader import PlcDriverLoader
 from plc4py.drivers.modbus.ModbusConfiguration import ModbusConfiguration
 from plc4py.drivers.modbus.ModbusDevice import ModbusDevice
 from plc4py.drivers.modbus.ModbusProtocol import ModbusProtocol
 from plc4py.drivers.modbus.ModbusTag import ModbusTagBuilder
+from plc4py.drivers.PlcDriverLoader import PlcDriverLoader
 from plc4py.spi.messages.PlcReader import DefaultPlcReader
-from plc4py.spi.messages.PlcRequest import DefaultReadRequestBuilder
+from plc4py.spi.messages.PlcRequest import (
+    DefaultReadRequestBuilder,
+    DefaultWriteRequestBuilder,
+)
 from plc4py.spi.messages.PlcWriter import DefaultPlcWriter
 from plc4py.spi.transport.Plc4xBaseTransport import Plc4xBaseTransport
 from plc4py.spi.transport.TCPTransport import TCPTransport
@@ -136,6 +140,12 @@ class ModbusConnection(PlcConnection, DefaultPlcReader, DefaultPlcWriter):
         """
         return DefaultReadRequestBuilder(ModbusTagBuilder)
 
+    def write_request_builder(self) -> WriteRequestBuilder:
+        """
+        :return: write request builder.
+        """
+        return DefaultWriteRequestBuilder(ModbusTagBuilder)
+
 
 class ModbusDriver(PlcDriver):
     def __init__(self):
@@ -175,7 +185,7 @@ class ModbusDriverLoader(PlcDriverLoader):
     """
 
     @staticmethod
-    @plc4py.hookimpl
+    @plc4py.drivers.hookimpl
     def get_driver() -> Type[ModbusDriver]:
         """
         Returns the ModbusDriver class used to instantiate Modbus plc drivers.
@@ -187,7 +197,7 @@ class ModbusDriverLoader(PlcDriverLoader):
         return ModbusDriver
 
     @staticmethod
-    @plc4py.hookimpl
+    @plc4py.drivers.hookimpl
     def key() -> str:
         """
         Returns the unique key for the Modbus driver.

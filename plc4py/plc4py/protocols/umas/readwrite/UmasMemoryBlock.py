@@ -101,6 +101,11 @@ class UmasMemoryBlock(ABC, PlcMessage):
     def static_parse_context(read_buffer: ReadBuffer, block_number: int, offset: int):
         read_buffer.push_context("UmasMemoryBlock")
 
+        if isinstance(block_number, str):
+            block_number = int(block_number)
+        if isinstance(offset, str):
+            offset = int(offset)
+
         # Switch Field (Depending on the discriminator values, passes the instantiation to a sub-type)
         builder: UmasMemoryBlockBuilder = None
         from plc4py.protocols.umas.readwrite.UmasMemoryBlockBasicInfo import (
@@ -143,14 +148,8 @@ class UmasMemoryBlock(ABC, PlcMessage):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

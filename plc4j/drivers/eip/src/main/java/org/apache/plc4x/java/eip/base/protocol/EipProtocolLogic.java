@@ -188,7 +188,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
         context.sendRequest(listServicesRequest)
             .expectResponse(EipPacket.class, REQUEST_TIMEOUT)
             .onError((p, e) -> {
-                throw new PlcRuntimeException("List EIP Services failed");
+                context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("List EIP Services failed"));
             })
             .handle(p -> {
                 if (p.getStatus() == CIPStatus.Success.getValue()) {
@@ -198,9 +198,9 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                     }
                     this.cipEncapsulationAvailable = listServicesResponse.getSupportsCIPEncapsulation();
                 } else if (p.getStatus() == CIPStatus.InvalidCommandWithWrongEndianess.getValue()) {
-                    throw new PlcRuntimeException("The remote device doesn't seem to use " + configuration.getByteOrder().name() + " byte order.");
+                    context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("The remote device doesn't seem to use " + configuration.getByteOrder().name() + " byte order."));
                 } else {
-                    throw new PlcRuntimeException("Got status code while polling for supported EIP services [" + p.getStatus() + "]");
+                    context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("Got status code while polling for supported EIP services [" + p.getStatus() + "]"));
                 }
                 onConnectRegisterSession(context);
             });
@@ -235,7 +235,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
             .only(CipRRData.class)
             .check(cipRRData -> {
                 if (cipRRData.getStatus() != CIPStatus.Success.getValue()) {
-                    throw new PlcRuntimeException("Got status code while polling for supported CIP services [" + cipRRData.getStatus() + "]");
+                    context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("Got status code while polling for supported CIP services [" + cipRRData.getStatus() + "]"));
                 }
                 return true;
             })
@@ -248,7 +248,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                     context.fireConnected();
                     return;
                 } else if ((long) response.getStatus() != CIPStatus.Success.getValue()) {
-                    throw new PlcRuntimeException("Got status code while polling for supported CIP attributes [" + response.getStatus() + "]");
+                    context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("Got status code while polling for supported CIP attributes [" + response.getStatus() + "]"));
                 }
                 if (response.getAttributes() != null) {
                     for (Integer classId : response.getAttributes().getClassId()) {
@@ -295,7 +295,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                         logger.debug("Got assigned with Session handle {}", sessionHandle);
                         getAllAttributes(context);
                     } else {
-                        throw new PlcRuntimeException("Got status code while polling for supported EIP services [" + p.getStatus() + "]");
+                        context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("Got status code while polling for supported EIP services [" + p.getStatus() + "]"));
                     }
                 } else {
                     onConnectOpenConnectionManager(context);
@@ -358,7 +358,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
             .only(CipRRData.class)
             .check(cipRRData -> {
                 if (cipRRData.getStatus() != 0L) {
-                    throw new PlcRuntimeException("Got status code while opening Connection Manager[" + cipRRData.getStatus() + "]");
+                    context.getChannel().pipeline().fireExceptionCaught(new PlcRuntimeException("Got status code while opening Connection Manager[" + cipRRData.getStatus() + "]"));
                 }
                 return true;
             })
@@ -492,8 +492,15 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                     .handle(p -> {
                         List<TypeId> responseTypeIds = p.getTypeIds();
                         UnConnectedDataItem dataItem = (UnConnectedDataItem) responseTypeIds.get(1);
-                        Map<String, ResponseItem<PlcValue>> readResponse = decodeSingleReadResponse(dataItem.getService(), tagName, eipTag);
-                        values.putAll(readResponse);
+                        // If the response indicates an error, handle this.
+                        if((dataItem.getService() instanceof CipConnectedResponse) && (((CipConnectedResponse) dataItem.getService()).getStatus() == 0x03)) {
+                            values.put(tagName, new ResponseItem<>(PlcResponseCode.INVALID_ADDRESS, null));
+                        }
+                        // Otherwise process the response.
+                        else {
+                            Map<String, ResponseItem<PlcValue>> readResponse = decodeSingleReadResponse(dataItem.getService(), tagName, eipTag);
+                            values.putAll(readResponse);
+                        }
                         internalFuture.complete(null);
                         transaction.endRequest();
                     }));
@@ -705,7 +712,7 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                     newSegment = new LogicalSegment(new MemberID((byte) 0x00, Short.parseShort(identifier)));
                     segments.add(newSegment);
                 } else {
-                    newSegment = new DataSegment(new AnsiExtendedSymbolSegment(identifier, (short) 0));
+                    newSegment = new DataSegment(new AnsiExtendedSymbolSegment(identifier, (identifier.length() % 2 == 0) ? null : (short) 0));
                     segments.add(newSegment);
                 }
             } else {
@@ -870,6 +877,8 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
                     return new PlcLINT(Long.reverseBytes(data.getLong(0)));
                 case REAL:
                     return new PlcREAL(swap(data.getFloat(0)));
+                case LREAL:
+                    return new PlcLREAL(swap(data.getDouble(0)));
                 case BOOL:
                     return new PlcBOOL(data.getBoolean(0));
                 case STRING:
@@ -898,6 +907,19 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
         int b3 = (bytes >> 16) & 0xff;
         int b4 = (bytes >> 24) & 0xff;
         return Float.intBitsToFloat(b1 << 24 | b2 << 16 | b3 << 8 | b4);
+    }
+
+    public double swap(double value) {
+        long bytes = Double.doubleToLongBits(value);
+        long b1 = (bytes) & 0xff;
+        long b2 = (bytes >> 8) & 0xff;
+        long b3 = (bytes >> 16) & 0xff;
+        long b4 = (bytes >> 24) & 0xff;
+        long b5 = (bytes >> 32) & 0xff;
+        long b6 = (bytes >> 40) & 0xff;
+        long b7 = (bytes >> 48) & 0xff;
+        long b8 = (bytes >> 56) & 0xff;
+        return Double.longBitsToDouble(b1 << 56 | b2 << 48 | b3 << 40 | b4 << 32 | b5 << 24 | b6 << 16 | b7 << 8 | b8);
     }
 
     public CompletableFuture<PlcWriteResponse> writeWithoutMessageRouter(PlcWriteRequest writeRequest) {
@@ -1294,11 +1316,14 @@ public class EipProtocolLogic extends Plc4xProtocolBase<EipPacket> implements Ha
             case DINT:
                 buffer.putInt(value.getInteger());
                 break;
-            case REAL:
-                buffer.putDouble(value.getDouble());
-                break;
             case LINT:
                 buffer.putLong(value.getLong());
+                break;
+            case REAL:
+                buffer.putFloat(value.getFloat());
+                break;
+            case LREAL:
+                buffer.putDouble(value.getDouble());
                 break;
             case STRING:
             case STRUCTURED:

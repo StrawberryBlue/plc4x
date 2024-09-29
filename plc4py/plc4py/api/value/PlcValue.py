@@ -18,8 +18,8 @@
 #
 from abc import ABC
 from dataclasses import dataclass
-from enum import auto, Enum
-from typing import TypeVar, Generic, List
+from enum import Enum, auto
+from typing import Generic, List, TypeVar
 
 T = TypeVar("T")
 
@@ -50,6 +50,15 @@ class PlcValue(Generic[T], ABC):
         if isinstance(self.value, list):
             return len(self.value)
         return 1
+
+    def __eq__(self, other):
+        """Compare PlcValue with another or a native data type"""
+        if isinstance(other, PlcValue):
+            return (self.value == other.value) and (
+                self.__class__.__name__ == other.__class__.__name__
+            )
+        else:
+            return other == self.value
 
 
 class PlcResponseCode(Enum):

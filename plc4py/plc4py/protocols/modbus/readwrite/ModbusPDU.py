@@ -21,6 +21,7 @@ from dataclasses import dataclass
 
 from abc import ABC
 from abc import abstractmethod
+from distutils.util import strtobool
 from plc4py.api.exceptions.exceptions import ParseException
 from plc4py.api.exceptions.exceptions import PlcRuntimeException
 from plc4py.api.exceptions.exceptions import SerializationException
@@ -107,6 +108,10 @@ class ModbusPDU(ABC, PlcMessage):
     @staticmethod
     def static_parse_context(read_buffer: ReadBuffer, response: bool):
         read_buffer.push_context("ModbusPDU")
+
+        if isinstance(response, str):
+            response = bool(strtobool(response))
+
         error_flag: bool = read_buffer.read_bit(
             logical_name="error_flag", bit_length=1, response=response
         )
@@ -658,14 +663,8 @@ class ModbusPDU(ABC, PlcMessage):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

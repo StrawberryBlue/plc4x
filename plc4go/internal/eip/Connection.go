@@ -22,12 +22,11 @@ package eip
 import (
 	"context"
 	"fmt"
-	"github.com/apache/plc4x/plc4go/spi/options"
-	"github.com/apache/plc4x/plc4go/spi/tracer"
-	"github.com/apache/plc4x/plc4go/spi/transactions"
-	"github.com/rs/zerolog"
 	"runtime/debug"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	"github.com/apache/plc4x/plc4go/pkg/api"
 	apiModel "github.com/apache/plc4x/plc4go/pkg/api/model"
@@ -35,8 +34,10 @@ import (
 	"github.com/apache/plc4x/plc4go/spi"
 	"github.com/apache/plc4x/plc4go/spi/default"
 	spiModel "github.com/apache/plc4x/plc4go/spi/model"
+	"github.com/apache/plc4x/plc4go/spi/options"
+	"github.com/apache/plc4x/plc4go/spi/tracer"
+	"github.com/apache/plc4x/plc4go/spi/transactions"
 	"github.com/apache/plc4x/plc4go/spi/utils"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -226,11 +227,11 @@ func (c *Connection) listServiceRequest(ctx context.Context, ch chan plc4go.PlcC
 			uint32(0),
 		),
 		func(message spi.Message) bool {
-			eipPacket := message.(readWriteModel.EipPacketExactly)
-			if eipPacket == nil {
+			eipPacket, ok := message.(readWriteModel.EipPacket)
+			if !ok {
 				return false
 			}
-			eipPacketListServicesResponse := eipPacket.(readWriteModel.ListServicesResponseExactly)
+			eipPacketListServicesResponse := eipPacket.(readWriteModel.ListServicesResponse)
 			return eipPacketListServicesResponse != nil
 		},
 		func(message spi.Message) error {
@@ -281,8 +282,8 @@ func (c *Connection) connectRegisterSession(ctx context.Context, ch chan plc4go.
 			uint32(0),
 		),
 		func(message spi.Message) bool {
-			eipPacket := message.(readWriteModel.EipPacketExactly)
-			return eipPacket != nil
+			_, ok := message.(readWriteModel.EipPacket)
+			return ok
 		},
 		func(message spi.Message) error {
 			eipPacket := message.(readWriteModel.EipPacket)
@@ -315,17 +316,24 @@ func (c *Connection) connectRegisterSession(ctx context.Context, ch chan plc4go.
 						readWriteModel.NewTransportType(true, 2, 3),
 						c.connectionPathSize, c.routingAddress, 1))
 				typeIds := []readWriteModel.TypeId{readWriteModel.NewNullAddressItem(), exchange}
-				eipWrapper := readWriteModel.NewCipRRData(c.sessionHandle, 0, typeIds,
-					c.sessionHandle, uint32(readWriteModel.CIPStatus_Success), c.senderContext, 0)
+				eipWrapper := readWriteModel.NewCipRRData(
+					c.sessionHandle,
+					uint32(readWriteModel.CIPStatus_Success),
+					c.senderContext,
+					0,
+					c.sessionHandle,
+					0,
+					typeIds,
+				)
 				if err := c.messageCodec.SendRequest(
 					ctx,
 					eipWrapper,
 					func(message spi.Message) bool {
-						eipPacket := message.(readWriteModel.EipPacketExactly)
+						eipPacket := message.(readWriteModel.EipPacket)
 						if eipPacket == nil {
 							return false
 						}
-						cipRRData := eipPacket.(readWriteModel.CipRRDataExactly)
+						cipRRData := eipPacket.(readWriteModel.CipRRData)
 						return cipRRData != nil
 					},
 					func(message spi.Message) error {
@@ -393,6 +401,10 @@ func (c *Connection) listAllAttributes(ctx context.Context, ch chan plc4go.PlcCo
 	if err := c.messageCodec.SendRequest(
 		ctx,
 		readWriteModel.NewCipRRData(
+			c.sessionHandle,
+			uint32(readWriteModel.CIPStatus_Success),
+			c.senderContext,
+			0,
 			EmptyInterfaceHandle,
 			0,
 			[]readWriteModel.TypeId{
@@ -401,13 +413,9 @@ func (c *Connection) listAllAttributes(ctx context.Context, ch chan plc4go.PlcCo
 					readWriteModel.NewGetAttributeAllRequest(
 						classSegment, instanceSegment, uint16(0))),
 			},
-			c.sessionHandle,
-			uint32(readWriteModel.CIPStatus_Success),
-			c.senderContext,
-			0,
 		),
 		func(message spi.Message) bool {
-			eipPacket := message.(readWriteModel.CipRRDataExactly)
+			eipPacket := message.(readWriteModel.CipRRData)
 			return eipPacket != nil
 		},
 		func(message spi.Message) error {

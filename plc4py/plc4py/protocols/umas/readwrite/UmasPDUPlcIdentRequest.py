@@ -57,6 +57,11 @@ class UmasPDUPlcIdentRequest(UmasPDUItem):
     ):
         read_buffer.push_context("UmasPDUPlcIdentRequest")
 
+        if isinstance(umas_request_function_key, str):
+            umas_request_function_key = int(umas_request_function_key)
+        if isinstance(byte_length, str):
+            byte_length = int(byte_length)
+
         read_buffer.pop_context("UmasPDUPlcIdentRequest")
         # Create the instance
         return UmasPDUPlcIdentRequestBuilder()
@@ -75,14 +80,8 @@ class UmasPDUPlcIdentRequest(UmasPDUItem):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

@@ -70,6 +70,11 @@ class UmasPDUWriteVariableResponse(UmasPDUItem):
     ):
         read_buffer.push_context("UmasPDUWriteVariableResponse")
 
+        if isinstance(umas_request_function_key, str):
+            umas_request_function_key = int(umas_request_function_key)
+        if isinstance(byte_length, str):
+            byte_length = int(byte_length)
+
         block: List[Any] = read_buffer.read_array_field(
             logical_name="block",
             read_function=read_buffer.read_unsigned_byte,
@@ -97,14 +102,8 @@ class UmasPDUWriteVariableResponse(UmasPDUItem):
         return hash(self)
 
     def __str__(self) -> str:
-        pass
-        # write_buffer_box_based: WriteBufferBoxBased = WriteBufferBoxBased(True, True)
-        # try:
-        #    write_buffer_box_based.writeSerializable(self)
-        # except SerializationException as e:
-        #    raise PlcRuntimeException(e)
-
-        # return "\n" + str(write_buffer_box_based.get_box()) + "\n"
+        # TODO:- Implement a generic python object to probably json convertor or something.
+        return ""
 
 
 @dataclass

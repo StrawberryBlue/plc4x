@@ -21,6 +21,7 @@ package org.apache.plc4x.java.modbus.ascii;
 import io.netty.buffer.ByteBuf;
 import org.apache.commons.codec.DecoderException;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.plc4x.java.modbus.ascii.context.ModbusAsciiContext;
 import org.apache.plc4x.java.modbus.readwrite.ModbusADU;
 import org.apache.plc4x.java.modbus.readwrite.ModbusRtuADU;
 import org.apache.plc4x.java.spi.configuration.PlcConnectionConfiguration;
@@ -133,13 +134,11 @@ public class ModbusAsciiDriver extends GeneratedDriverBase<ModbusAsciiADU> {
 
     @Override
     protected ProtocolStackConfigurer<ModbusAsciiADU> getStackConfigurer() {
-        return SingleProtocolStackConfigurer.builder(ModbusAsciiADU.class,
-                new ModbusAsciiInput(), new ModbusAsciiOutput())
+        return SingleProtocolStackConfigurer.builder(ModbusAsciiADU.class, new ModbusAsciiInput(), new ModbusAsciiOutput())
             .withProtocol(ModbusAsciiProtocolLogic.class)
-            .withPacketSizeEstimator(ModbusAsciiDriver.ByteLengthEstimator.class)
-            .withCorruptPacketRemover(ModbusAsciiDriver.CorruptPackageCleaner.class)
-            // Every incoming message is to be treated as a response.
-            .withParserArgs(DriverType.MODBUS_ASCII, true)
+            .withDriverContext(ModbusAsciiContext.class)
+            .withPacketSizeEstimator(ByteLengthEstimator.class)
+            .withCorruptPacketRemover(CorruptPackageCleaner.class)
             .build();
     }
 
@@ -160,7 +159,7 @@ public class ModbusAsciiDriver extends GeneratedDriverBase<ModbusAsciiADU> {
                 // Try to parse the buffer content.
                 try {
                     ModbusAsciiInput input = new ModbusAsciiInput();
-                    ModbusAsciiADU modbusADU = input.parse(reader, DriverType.MODBUS_ASCII, true);
+                    ModbusAsciiADU modbusADU = input.parse(reader);
 
                     // Make sure we only read one message.
                     return (modbusADU.getLengthInBytes() * 2) + 3;
@@ -198,7 +197,7 @@ public class ModbusAsciiDriver extends GeneratedDriverBase<ModbusAsciiADU> {
 
     public static class ModbusAsciiInput implements MessageInput<ModbusAsciiADU> {
         @Override
-        public ModbusAsciiADU parse(ReadBuffer io, Object... args) throws ParseException {
+        public ModbusAsciiADU parse(ReadBuffer io) throws ParseException {
             // A Modbus ASCII message starts with an ASCII character ":" and is ended by two characters CRLF
             // (Carriage-Return + Line-Feed)
             // The actual payload is that each byte of the message is encoded by a string representation of it's
@@ -228,7 +227,7 @@ public class ModbusAsciiDriver extends GeneratedDriverBase<ModbusAsciiADU> {
 
     public static class ModbusAsciiOutput implements MessageOutput<ModbusAsciiADU> {
         @Override
-        public WriteBufferByteBased serialize(ModbusAsciiADU value, Object... args) throws SerializationException {
+        public WriteBufferByteBased serialize(ModbusAsciiADU value) throws SerializationException {
             // First serialize the packet the normal way.
             WriteBufferByteBased writeBufferByteBased = new WriteBufferByteBased(value.getLengthInBytes());
             value.serialize(writeBufferByteBased);

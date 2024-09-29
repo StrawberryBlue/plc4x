@@ -21,7 +21,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="plc4py",
-    version="0.11a0",
+    version="0.13",
     description="Plc4py The Python Industrial IOT Adapter",
     classifiers=[
         "Development Status :: 3 - Alpha",
@@ -46,6 +46,7 @@ setup(
         "aenum",
         "bitarray",
         "typing_extensions",
+        "pluggy",
     ],
     extras_require={
         "dev": [
@@ -56,6 +57,7 @@ setup(
             "mypy>=0.942",
             "flake8>=4.0.1",
             "pytest-asyncio",
+            "xsdata",
         ]
     },
     entry_points={
@@ -63,6 +65,10 @@ setup(
             "mock = plc4py.drivers.mock.MockConnection:MockDriverLoader",
             "modbus = plc4py.drivers.modbus.ModbusConnection:ModbusDriverLoader",
             "umas = plc4py.drivers.umas.UmasConnection:UmasDriverLoader",
-        ]
+        ],
+        "plc4py.transports": [
+            "tcp = plc4py.spi.transport.TCPTransport:TCPTransportLoader",
+            "mock = plc4py.spi.transport.MockTransport:MockTransportLoader",
+        ],
     },
 )

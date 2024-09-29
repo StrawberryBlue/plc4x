@@ -28,7 +28,7 @@
 
   <artifactId>plc4j-driver-iec-60870</artifactId>
 
-  <name>PLC4J: Driver: IEC 60870-5-104</name>
+  <name>PLC4J: Driver: IEC-60870</name>
   <description>Implementation of a PLC4X driver for the IEC 60870-5-104 protocol.</description>
 
   <properties>
@@ -114,10 +114,6 @@
       <artifactId>netty-transport</artifactId>
     </dependency>
     <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
@@ -126,6 +122,11 @@
       <groupId>org.apache.plc4x</groupId>
       <artifactId>plc4j-utils-test-utils</artifactId>
       <version>0.13.0-SNAPSHOT</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
       <scope>test</scope>
     </dependency>
 

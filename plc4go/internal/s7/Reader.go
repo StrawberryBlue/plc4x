@@ -21,20 +21,20 @@ package s7
 
 import (
 	"context"
-	"github.com/apache/plc4x/plc4go/spi/options"
-	"github.com/apache/plc4x/plc4go/spi/transactions"
-	"github.com/rs/zerolog"
 	"runtime/debug"
 	"time"
+
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
 
 	apiModel "github.com/apache/plc4x/plc4go/pkg/api/model"
 	apiValues "github.com/apache/plc4x/plc4go/pkg/api/values"
 	readWriteModel "github.com/apache/plc4x/plc4go/protocols/s7/readwrite/model"
 	"github.com/apache/plc4x/plc4go/spi"
 	spiModel "github.com/apache/plc4x/plc4go/spi/model"
+	"github.com/apache/plc4x/plc4go/spi/options"
+	"github.com/apache/plc4x/plc4go/spi/transactions"
 	spiValues "github.com/apache/plc4x/plc4go/spi/values"
-
-	"github.com/pkg/errors"
 )
 
 type Reader struct {
@@ -96,16 +96,17 @@ func (m *Reader) Read(ctx context.Context, readRequest apiModel.PlcReadRequest) 
 
 		request := s7MessageRequest
 		// Create a new Request with correct tpuId (is not known before)
-		s7MessageRequest = readWriteModel.NewS7MessageRequest(tpduId, request.Parameter, request.Payload)
+		s7MessageRequest = readWriteModel.NewS7MessageRequest(tpduId, request.GetParameter(), request.GetPayload())
 
 		// Assemble the finished paket
 		m.log.Trace().Msg("Assemble paket")
 		// TODO: why do we use a uint16 above and the cotp a uint8?
 		tpktPacket := readWriteModel.NewTPKTPacket(
-			readWriteModel.NewCOTPPacketData(true,
-				uint8(tpduId),
+			readWriteModel.NewCOTPPacketData(
 				nil,
 				s7MessageRequest,
+				true,
+				uint8(tpduId),
 				0,
 			),
 		)
@@ -116,11 +117,11 @@ func (m *Reader) Read(ctx context.Context, readRequest apiModel.PlcReadRequest) 
 			// Send the  over the wire
 			m.log.Trace().Msg("Send ")
 			if err := m.messageCodec.SendRequest(ctx, tpktPacket, func(message spi.Message) bool {
-				tpktPacket, ok := message.(readWriteModel.TPKTPacketExactly)
+				tpktPacket, ok := message.(readWriteModel.TPKTPacket)
 				if !ok {
 					return false
 				}
-				cotpPacketData, ok := tpktPacket.GetPayload().(readWriteModel.COTPPacketDataExactly)
+				cotpPacketData, ok := tpktPacket.GetPayload().(readWriteModel.COTPPacketData)
 				if !ok {
 					return false
 				}
