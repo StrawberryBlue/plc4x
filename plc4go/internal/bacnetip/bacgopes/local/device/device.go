@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.plc4x.java.api.value;
 
-import org.apache.plc4x.java.api.model.PlcTag;
+package device
 
-/**
- * Base Valuehandler
- */
-public interface PlcValueHandler {
+import (
+	. "github.com/apache/plc4x/plc4go/internal/bacnetip/bacgopes/debugging"
+)
 
-    PlcValue newPlcValue(Object value);
-    PlcValue newPlcValue(Object[] values);
-    PlcValue newPlcValue(PlcTag tag, Object value);
-    PlcValue newPlcValue(PlcTag tag, Object[] values);
-
-}
+var _debug = CreateDebugPrinter()
